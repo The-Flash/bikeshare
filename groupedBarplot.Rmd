@@ -1,0 +1,132 @@
+## Grouped Barplot in R
+
+In this post, we are going to see how we can program a grouped barplot in R. We will be using R to explore data related to bike share systems for three major cities in the United States—Chicago, New York City, and Washington.
+
+
+We will use data provided by Motivate, a bike-share system provider for many major cities in the United States, to answer a question about the data.
+
+
+We will explore the question, "What are the counts for each user type?".
+
+## The Dataset
+
+Let's import our datasets and see what we are working with.
+
+
+```{r}
+ny = read.csv("new_york_city.csv")
+wash = read.csv("washington.csv")
+chi = read.csv("chicago.csv")
+```
+
+We now use the head function to see how each data frame looks like.
+
+```{r}
+head(ny)
+```
+
+```{r}
+head(wash)
+```
+
+```{r}
+head(chi)
+```
+
+## Importing The Needed Libraries
+
+To accomplish our aim, we need just two libraries. ggplot2 and dplyr. If you don't have these, install them as follows.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+If you don't have these libraries, use this to install
+```{r}
+if (!require('ggplot2')) {
+  install.packages("ggplot2")
+}
+if (!require('dplyr')) {
+  install.packages("dplyr")
+}
+```
+ 
+## Getting the counts of different user types for each city
+
+The dplyr library provides the count() function for just that. We use the %>% operator to pipe the data frame into the count function as follows.
+
+```{r}
+# We want to count frequency of each User.Type
+(ny_user_types <- ny %>% count(User.Type))
+(chi_user_types <- chi %>% count(User.Type))
+(wash_user_types <- wash %>% count(User.Type))
+```
+
+We wrapped each expression with "()" to run it immediately.
+Notice something about the output? We get an empty User.Type with count of 1. Let's filter that out by slicing as follows.
+
+```{r}
+(ny_types <- ny_user_types[2:nrow(ny_user_types), ])
+(chi_types <- chi_user_types[2:nrow(chi_user_types), ])
+(wash_types <- wash_user_types[2:nrow(wash_user_types), ])
+```
+R indexing starts from 1 so for the number of rows we want, we slice from the second row, that is, 2 to the total number of rows in the data frame with the nrow() function. We leave the number of columns empty since we want all of it.
+
+## Combining our User.Type counts.
+
+For us to be able to compute the grouped barplot, we need to map the User types and their counts to the cities the belong in a data frame.
+The functions we will be using are the
+The rep() function: We use this to repeat a vector of cities.
+```{r}
+(cities <- rep(c("Washington" , "New York" , "Chicago") , each=2)) 
+# We want to repeat each city twice since there are two user types: Subscriber and Customer
+```
+
+The rbind() function: We use this to vertically combine the User.Type data frames above into one.
+```{r}
+(data <- rbind(wash_types, ny_types, chi_types))
+```
+
+Finally, we map the User.Type counts to their respective cities.
+
+```{r}
+(data.m <- data.frame(data, cities))
+```
+Now we have our data in a format we can work with to produce our barplot.
+
+## Plotting our data frame
+
+For our plot, we want to plot the counts on the y-axis and the user types on the x-axis.
+
+```{r}
+ggplot(data.m, aes(fill=cities, y=n, x=User.Type)) + geom_col(position="dodge") + labs(title="User Type Counts for Cities")
+```
+
+From the above visualizations:
+
+ 1. For New York, there are more subscribers than customers.
+ 2. For Chicago, there are more subscribers than customers.
+ 3. For Washington, there are more subscribers than customers.
+
+ Hence, more Subscribers use the service than customers
+
+It's as simple as that.
+
+## A Little sidenote
+
+When I was practicing how to program grouped bar plots, I didn't have access to the dplyr library in the environment I was working on, so I wrote this little function to compute the counts for each user type.
+
+```{r}
+user_counts.function <- function(city_data) {
+    aggregated_data <- aggregate(city_data$User.Type, by=list(city_data$User.Type), FUN=length)
+    names(aggregated_data)[1] = "User.Type"
+    names(aggregated_data)[2] = "Count"
+    row.names(aggregated_data) <- NULL
+    return (aggregated_data[2:nrow(aggregated_data), ])
+}
+```
+We use the aggregate function and apply length function to aggregate by the User.Type column of the city_data parameter.
+Note: Use this only if for any reason you do not have access to the dplyr library.
+
+Hope you enjoyed this post. Leave a comment below!
